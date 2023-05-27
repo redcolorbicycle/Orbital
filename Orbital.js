@@ -1,42 +1,102 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
+import firebase from './firebase';
 
 const App = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
+  const [registerPage, setRegisterPage] = useState(false);
 
   const handleLogin = () => {
-    // TODO: Implement login logic here (firebase), now is dummy
-    if (username === 'admin' && password === 'password') {
-      setLoggedIn(true);
-    } else {
-      Alert.alert(
-        'Invalid credentials',
-        'Would you like to register as a member or reset your password?',
-        [
-          { text: 'Register', onPress: handleRegister },
-          { text: 'Forgot Password', onPress: handleForgotPassword },
-        ]
-      );
-    }
+    const auth = getAuth();
+    signInWithEmailAndPassword(auth, username, password)
+      .then(() => {
+        setLoggedIn(true);
+      })
+      .catch((error) => {
+        Alert.alert(
+          'Invalid credentials',
+          'Would you like to register as a member or reset your password?',
+          [
+            { text: 'Register', onPress: handleRegister },
+            { text: 'Forgot Password', onPress: handleForgotPassword },
+          ]
+        );
+      });
   };
 
   const handleRegister = () => {
-    // TODO: Implement login logic here (firebase), now is dummy
-    Alert.alert('Registration', 'Registration functionality is not implemented yet.');
+    setRegisterPage(true);
   };
 
   const handleForgotPassword = () => {
-    // TODO: Implement login logic here (firebase), now is dummy
-    Alert.alert('Forgot Password', 'Forgot password functionality is not implemented yet.');
+    const auth = getAuth();
+    sendPasswordResetEmail(auth, username)
+      .then(() => {
+        Alert.alert('Password Reset Email Sent', 'Please check your email to reset your password.');
+      })
+      .catch((error) => {
+        Alert.alert('Forgot Password Error', error.message);
+      });
   };
 
   const handleLogout = () => {
-    setLoggedIn(false);
-    setUsername('');
-    setPassword('');
+    const auth = getAuth();
+    signOut(auth)
+      .then(() => {
+        setLoggedIn(false);
+        setUsername('');
+        setPassword('');
+      })
+      .catch((error) => {
+        Alert.alert('Logout Error', error.message);
+      });
   };
+
+  const handleRegisterPageBack = () => {
+    setRegisterPage(false);
+  };
+
+  const handleRegisterUser = () => {
+    const auth = getAuth();
+    createUserWithEmailAndPassword(auth, username, password)
+      .then(() => {
+        Alert.alert(
+          'Account Created',
+          'Your account has been successfully created. Please return to the main login page to log in with your new account.'
+        );
+      })
+      .catch((error) => {
+        Alert.alert('Registration Error', error.message);
+      });
+  };
+
+  if (registerPage) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.heading}>Register as a user!</Text>
+        <View style={styles.formContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Username"
+            value={username}
+            onChangeText={(text) => setUsername(text)}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            secureTextEntry
+            value={password}
+            onChangeText={(text) => setPassword(text)}
+          />
+          <Button title="Register" onPress={handleRegisterUser} />
+          <Button title="Back" onPress={handleRegisterPageBack} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -57,7 +117,7 @@ const App = () => {
             onChangeText={(text) => setPassword(text)}
           />
           <Button title="Login" onPress={handleLogin} />
-          <Text style={styles.registerText}>Not a member?</Text>
+          <Text style={[styles.registerText, { textAlignVertical: 'center' }]}>Not a user?</Text>
           <Button title="Register" onPress={handleRegister} />
         </View>
       ) : (
@@ -90,6 +150,13 @@ const styles = StyleSheet.create({
   },
   loggedInContainer: {
     alignItems: 'center',
+  },
+  formContainer: {
+    width: '80%',
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   input: {
     height: 40,
